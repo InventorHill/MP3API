@@ -2,6 +2,14 @@
     define("DIRSEP", DIRECTORY_SEPARATOR);
     define("PROJECT_ROOT_PATH", __DIR__ . sprintf("%s..%s", DIRSEP, DIRSEP));
 
+    define("CLASS_NAMES", array(
+        'register' => 'Register',
+        'checkUpdate' => 'CheckUpdate',
+        'add' => 'AddFile',
+        'update' => 'UpdateVersion',
+        'download' => 'DownloadFile',
+        'upload' => 'UploadFile'));
+
     require_once PROJECT_ROOT_PATH . sprintf("%sinc%sconfig.php", DIRSEP, DIRSEP);
     
     require_once PROJECT_ROOT_PATH . sprintf("%sController%sApi%sBaseController.php", DIRSEP, DIRSEP, DIRSEP);

@@ -18,7 +18,7 @@
 
                     $responseData = $userModel->checkUpdates($files);
 
-                    if(!$responseData && $responseData !== [])
+                    if(!$responseData && !is_array($responseData))
                     {
                         $responseData = "Could Not Find Updates";
                         $strHeader = 'HTTP/1.1 400 Bad Request';
@@ -39,7 +39,7 @@
                 $arrIndex = 'Error';
             }
 
-            return array(json_encode(array($arrIndex => $responseData)), array('Content-Type: application/json', $strHeader), false);
+            return array(json_encode(array($arrIndex => $responseData)), array('Content-Type: application/json', $strHeader));
         }
     }
 

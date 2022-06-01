@@ -49,5 +49,14 @@
 
             exit;
         }
+
+        protected function arrayToOutput($output = array())
+        {
+            $data = $output[0];
+            $httpHeaders = $output[1];
+            $download = isset($output[2]) ? $output[2] : '';
+
+            $this->sendOutput($data, $httpHeaders, $download);
+        }
     }
 ?>

@@ -10,6 +10,6 @@
     }
 
     $objFeedController = new UserController();
-    $strMethodName = $uri[3] . 'Action';
-    $objFeedController->{$strMethodName}();
+    $strMethodName = $uri[3];
+    $objFeedController->{$strMethodName == 'online' ? 'onlineAction' : 'performAction'}($strMethodName);
 ?>

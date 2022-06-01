@@ -113,7 +113,7 @@
                 $arrIndex = 'Error';
             }
 
-            return array(json_encode(array($arrIndex => $responseData)), array('Content-Type: application/json', $strHeader), false);
+            return array(json_encode(array($arrIndex => $responseData)), array('Content-Type: application/json', $strHeader));
         }
     }
 ?>
