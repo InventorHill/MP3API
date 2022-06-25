@@ -4,17 +4,35 @@
         public function uploadFile()
         {
             $requestMethod = $_SERVER["REQUEST_METHOD"];
-            $submit = $_POST["submit"];
-            $vers = $_GET["vers"];
-            $pi_name = $_GET["pi_name"];
-            $update = $_GET["update"];
+            $submit = isset($_POST["submit"]) ? trim($_POST["submit"]) : '';
+            $vers = isset($_GET["vers"]) ? trim($_GET["vers"]) : '';
+            $pi_name = isset($_GET["pi_name"]) ? trim($_GET["pi_name"]) : '';
+            $update = isset($_GET["update"]) ? trim($_GET["update"]) : '';
 
             $strHeader = 'HTTP/1.1 200 OK';
             $name = '';
             $content_type = '';
             $arrIndex = 'OK';
 
-            if(strtoupper($requestMethod) == 'POST')
+            if (!str_contains($pi_name, '!'))
+            {
+                $responseData = 'Invalid File Path';
+                $strHeader = 'HTTP/1.1 400 Bad Request';
+                $arrIndex = 'Error';
+            }
+            else if (strpos($pi_name, '!', -1))
+            {
+                $responseData = 'Invalid File Name';
+                $strHeader = 'HTTP/1.1 400 Bad Request';
+                $arrIndex = 'Error';
+            }
+            else if (!floatval($vers))
+            {
+                $responseData = "Invalid Version";
+                $strHeader = 'HTTP/1.1 400 Bad Request';
+                $arrIndex = 'Error';
+            }
+            else if (strtoupper($requestMethod) == 'POST')
             {
                 try
                 {
@@ -51,16 +69,21 @@
                                     if(strtolower($update) == "true")
                                     {
                                         $userModel = new UserModelUpdateVersion();
-                                        $responseData = $userModel->updateVersion($vers, $name);
+                                        $response_arr = $userModel->updateVersion($vers, $name);
 
-                                        if(!$responseData)
+                                        if(!$response_arr)
                                         {
                                             $responseData = "Could Not Update Version";
                                             $strHeader = 'HTTP/1.1 400 Bad Request';
                                             $arrIndex = 'Error';
                                         }
                                         else
-                                            $responseData = 'Version Updated Successfully';
+                                        {
+                                            $strHeader = $response_arr[1][1];
+                                            $response_arr = json_decode($response_arr[0]);
+                                            $responseData = $response_arr[0];
+                                            $arrIndex = key($response_arr);
+                                        }
                                     }
                                     else
                                     {

@@ -4,11 +4,11 @@
         public function addFile()
         {
             $requestMethod = $_SERVER["REQUEST_METHOD"];
-            $version = $_GET["vers"];
+            $version = isset($_GET["vers"]) ? trim($_GET['vers']) : '';
 
-            $dir = isset($_GET["dir"]) ? $_GET["dir"] : '';
-            $file = isset($_GET["file"]) ? $_GET["file"] : '';
-            $pi_file = isset($_GET["pi_file"]) ? $_GET["pi_file"] : '';
+            $dir = isset($_GET["dir"]) ? trim($_GET["dir"]) : '';
+            $file = isset($_GET["file"]) ? trim($_GET["file"]) : '';
+            $pi_file = isset($_GET["pi_file"]) ? trim($_GET["pi_file"]) : '';
 
             $strHeader = 'HTTP/1.1 200 OK';
             $arrIndex = 'OK';
@@ -23,31 +23,21 @@
                     {
                         if ($dir)
                         {
-                            $responseData = $userModel->addFiles($version, $dir);
+                            $response_arr = $userModel->addFiles($version, $dir);
 
-                            if(!$responseData)
-                            {
-                                $responseData = "Could Not Add Files";
-                                $strHeader = 'HTTP/1.1 400 Bad Request';
-                                $arrIndex = 'Error';
-                            }
-                            else
-                                $responseData = "Files Added Successfully";
+                            $responseData = $response_arr['Response'];
+                            $strHeader = $response_arr['Header'];
+                            $arrIndex = $response_arr['Index'];
                         }
                         else
                         {
                             if($file && $pi_file)
                             {
-                                $responseData = $userModel->addFile($version, $file, $pi_file);
+                                $response_arr = $userModel->addFile($version, $file, $pi_file);
 
-                                if(!$responseData)
-                                {
-                                    $responseData = "Could Not Add File";
-                                    $strHeader = 'HTTP/1.1 400 Bad Request';
-                                    $arrIndex = 'Error';
-                                }
-                                else
-                                    $responseData = "File Added Successfully";
+                                $responseData = $response_arr['Response'];
+                                $strHeader = $response_arr['Header'];
+                                $arrIndex = $response_arr['Index'];
                             }
                             else
                             {
@@ -59,7 +49,7 @@
                     }
                     else
                     {
-                        $responseData = "Incorrect Version";
+                        $responseData = "Invalid Version";
                         $strHeader = 'HTTP/1.1 422 Unprocessable Entity';
                         $arrIndex = 'Error';
                     }
@@ -102,12 +92,28 @@
 
             $query = "INSERT INTO `file_locations` (`file_name`, `version`, `server_dir`, `pi_dir`) VALUES (?, ?, ?, ?)";
 
-            $worked = False;
+            $worked = 0;
+            $total_count = count($server_files);
 
             for ($i = 0; $i < count($server_files); $i++)
-                $worked |= $this->execute($query, 'sdss', array($names[$i], $version, $server_files[$i], $pi_files[$i]));
+            {
+                $worked += $this->execute($query, 'sdss', array($names[$i], $version, $server_files[$i], $pi_files[$i])) ? 1 : 0;
+            }
 
-            return $worked;
+            $failed = $total_count - $worked;
+
+            if($failed == 0)
+                return array(
+                    'Header' => 'HTTP/1.1 200 OK',
+                    'Index' => 'OK',
+                    'Response' => 'Files Added Successfully'
+                );
+            else
+                return array(
+                    'Header' => 'HTTP/1.1 500 Internal Server Error',
+                    'Index' => 'Error',
+                    'Response' => $failed . ' Out Of ' . $total_count . ' Files Unsuccessfully Added'
+                );
         }
 
         public function addFile($version = '', $file = '', $pi_file = '') 
@@ -118,7 +124,20 @@
 
             $query = "INSERT INTO `file_locations` (`file_name`, `version`, `server_dir`, `pi_dir`) VALUES (?, ?, ?, ?);";
 
-            return $this->execute($query, 'sdss', array($name, $version, $server_file, $pi_file));
+            $result = $this->execute($query, 'sdss', array($name, $version, $server_file, $pi_file));
+
+            if($result)
+                return array(
+                    'Header' => 'HTTP/1.1 200 OK',
+                    'Index' => 'OK',
+                    'Response' => 'File Added Successfully'
+                );
+            else
+                return array(
+                    'Header' => 'HTTP/1.1 500 Internal Server Error',
+                    'Index' => 'Error',
+                    'Response' => 'Could Not Add File'
+                );
         }
 
         public function listAllFiles($dir) 

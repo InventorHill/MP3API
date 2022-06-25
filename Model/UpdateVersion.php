@@ -4,8 +4,8 @@
         public function updateVersion()
         {
             $requestMethod = $_SERVER["REQUEST_METHOD"];
-            $version = $_GET["vers"];
-            $file_name = $_GET["file_name"];
+            $version = isset($_GET["vers"]) ? trim($_GET["vers"]) : '';
+            $file_name = isset($_GET["file_name"]) ? trim($_GET["file_name"]) : '';
 
             $strHeader = 'HTTP/1.1 200 OK';
             $arrIndex = 'OK';
@@ -16,22 +16,17 @@
                 {
                     $userModel = new UserModelUpdateVersion();
 
-                    if($version && $file_name)
+                    if($version && $file_name && floatval($version))
                     {
-                        $responseData = $userModel->updateVersion($version, $file_name);
+                        $response_arr = $userModel->updateVersion($version, $file_name);
 
-                        if(!$responseData)
-                        {
-                            $responseData = "Could Not Update File";
-                            $strHeader = 'HTTP/1.1 400 Bad Request';
-                            $arrIndex = 'Error';
-                        }
-                        else
-                            $responseData = "Version Updated Successfully";
+                        $responseData = $response_arr['Response'];
+                        $strHeader = $response_arr['Header'];
+                        $arrIndex = $response_arr['Index'];
                     }
                     else
                     {
-                        $responseData = "Missing Arguments";
+                        $responseData = "Invalid Arguments";
                         $strHeader = 'HTTP/1.1 422 Unprocessable Entity';
                         $arrIndex = 'Error';
                     }
@@ -60,7 +55,20 @@
         {
             $query = "UPDATE `file_locations` SET `version` = ? WHERE `file_locations`.`file_name` = ?";
 
-            return $this->execute($query, 'ds', array($version, $name));
+            $result = $this->execute($query, 'ds', array($version, $name));
+
+            if($result)
+                return array(
+                    'Header' => 'HTTP/1.1 200 OK',
+                    'Index' => 'OK',
+                    'Response' => 'Version Updated Successfully'
+                );
+            else
+                return array(
+                    'Header' => 'HTTP/1.1 500 Internal Server Error',
+                    'Index' => 'Error',
+                    'Response' => 'Could Not Update Version'
+            );
         }
     }
 ?>

@@ -3,26 +3,37 @@
     {
         public function checkUpdate()
         {
-            $requestMethod = $_SERVER["REQUEST_METHOD"];
+            $requestMethod = strtoupper($_SERVER["REQUEST_METHOD"]);
 
             $strHeader = 'HTTP/1.1 200 OK';
             $arrIndex = 'OK';
 
-            if(strtoupper($requestMethod) == 'GET')
+            if($requestMethod == 'GET')
             {
                 try
                 {
                     $userModel = new UserModelCheckUpdate();
 
-                    $files = json_decode(file_get_contents("php://input"), true);
+                    $files = file_get_contents("php://input");
 
-                    $responseData = $userModel->checkUpdates($files);
-
-                    if(!$responseData && !is_array($responseData))
+                    if(!$files)
                     {
-                        $responseData = "Could Not Find Updates";
+                        $responseData = "Files Not Supplied";
                         $strHeader = 'HTTP/1.1 400 Bad Request';
                         $arrIndex = 'Error';
+                    }
+                    else
+                    {
+                        $files = json_decode($files, true);
+
+                        $responseData = $userModel->checkUpdates($files);
+
+                        if(!$responseData && !is_array($responseData))
+                        {
+                            $responseData = "Could Not Find Updates";
+                            $strHeader = 'HTTP/1.1 400 Bad Request';
+                            $arrIndex = 'Error';
+                        }
                     }
                 }
                 catch (Error $e)

@@ -4,8 +4,8 @@
         public function register()
         {
             $requestMethod = $_SERVER["REQUEST_METHOD"];
-            $name = $_GET['name'];
-            $pass = $_POST['pass'];
+            $name = isset($_GET['name']) ? trim($_GET['name']) : '';
+            $pass = isset($_POST['pass']) ? trim($_POST['pass']) : '';
 
             $strHeader = 'HTTP/1.1 200 OK';
             $arrIndex = 'OK';
@@ -16,24 +16,19 @@
                 {
                     $userModel = new UserModelRegister();
 
-                    if(!$name || !$pass)
+                    if(!$name || !$pass || strlen($pass) < 8)
                     {
-                        $responseData = "Missing Arguments";
+                        $responseData = "Invalid Arguments";
                         $strHeader = 'HTTP/1.1 400 Bad Request';
                         $arrIndex = 'Error';
                     }
                     else
                     {
-                        $responseData = $userModel->register($name, $pass);
+                        $response_arr = $userModel->register($name, $pass);
 
-                        if(!$responseData)
-                        {
-                            $responseData = "Could Not Register Device";
-                            $strHeader = 'HTTP/1.1 400 Bad Request';
-                            $arrIndex = 'Error';
-                        }
-                        else
-                            $responseData = "Device Request Added Successfully";
+                        $responseData = $response_arr['Response'];
+                        $strHeader = $response_arr['Header'];
+                        $arrIndex = $response_arr['Index'];
                     }
                 }
                 catch (Error $e)
@@ -64,9 +59,46 @@
             $salt = hash('md5', $timestamp);
             $hash_pass = hash('sha512', $pass . $salt);
 
-            $query = "INSERT INTO `device_requests` (`device_name`, `device_pass`, `timestamp`) VALUES (?, ?, ?)";
+            $query = "SELECT `device_num` FROM `registered_devices` 
+                WHERE `device_name` = ? UNION SELECT `device_num` FROM `device_requests` WHERE `device_name` = ?";
 
-            return $this->execute($query, 'sss', array($name, $hash_pass, $timestamp));
+            $result = $this->execute($query, 'ss', array($name, $name));
+
+            try
+            {
+                if (is_array($result) && count($result) == 0)
+                {
+                    $query = "INSERT INTO `device_requests` (`device_name`, `device_pass`, `timestamp`) VALUES (?, ?, ?)";
+                    $result = $this->execute($query, 'sss', array($name, $hash_pass, $timestamp));
+
+                    if($result)
+                        return array(
+                            'Header' => 'HTTP/1.1 200 OK',
+                            'Index' => 'OK',
+                            'Response' => 'Device Request Added Successfully'
+                        );
+                    else
+                        return array(
+                            'Header' => 'HTTP/1.1 500 Internal Server Error',
+                            'Index' => 'Error',
+                            'Response' => 'Could Not Register Device'
+                        );
+                }
+                else
+                    return array(
+                        'Header' => 'HTTP/1.1 400 Bad Request',
+                        'Index' => 'Error',
+                        'Response' => 'Device Name Already Exists'
+                    );
+            }
+            catch (Exception $e)
+            {
+                return array(
+                    'Header' => 'HTTP/1.1 400 Bad Request',
+                    'Index' => 'Error',
+                    'Response' => 'Device Name Already Exists'
+                );
+            }
         }
     }
 ?>

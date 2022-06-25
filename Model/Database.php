@@ -23,7 +23,7 @@
             try
             {
                 $statement = $this->mysql->prepare($query);
-                
+
                 if($statement === false)
                 {
                     echo $statement->error;

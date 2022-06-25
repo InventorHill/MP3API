@@ -8,7 +8,8 @@
         'add' => 'AddFile',
         'update' => 'UpdateVersion',
         'download' => 'DownloadFile',
-        'upload' => 'UploadFile'));
+        'upload' => 'UploadFile',
+        'delete' => 'DeleteFile'));
 
     require_once PROJECT_ROOT_PATH . sprintf("%sinc%sconfig.php", DIRSEP, DIRSEP);
     
@@ -18,6 +19,7 @@
     require_once PROJECT_ROOT_PATH . sprintf("%sModel%sDatabase.php", DIRSEP, DIRSEP);
 
     require_once PROJECT_ROOT_PATH . sprintf("%sModel%sAddFile.php", DIRSEP, DIRSEP);
+    require_once PROJECT_ROOT_PATH . sprintf("%sModel%sDeleteFile.php", DIRSEP, DIRSEP);
     require_once PROJECT_ROOT_PATH . sprintf("%sModel%sCheckUpdate.php", DIRSEP, DIRSEP);
     require_once PROJECT_ROOT_PATH . sprintf("%sModel%sDownloadFile.php", DIRSEP, DIRSEP);
     require_once PROJECT_ROOT_PATH . sprintf("%sModel%sRegister.php", DIRSEP, DIRSEP);
