@@ -4,22 +4,32 @@
         public function addFile()
         {
             $requestMethod = $_SERVER["REQUEST_METHOD"];
-            $version = isset($_GET["vers"]) ? trim($_GET['vers']) : '';
-
-            $dir = isset($_GET["dir"]) ? trim($_GET["dir"]) : '';
-            $file = isset($_GET["file"]) ? trim($_GET["file"]) : '';
-            $pi_file = isset($_GET["pi_file"]) ? trim($_GET["pi_file"]) : '';
+            $data = file_get_contents("php://input");
 
             $strHeader = 'HTTP/1.1 200 OK';
             $arrIndex = 'OK';
 
-            if(strtoupper($requestMethod) == 'GET')
+            if(!$data)
+            {
+                $responseData = "Missing Data";
+                $strHeader = 'HTTP/1.1 400 Bad Request';
+                $arrIndex = 'Error';
+            }
+            else if(strtoupper($requestMethod) == 'GET')
             {
                 try
                 {
+                    $data = json_decode($data, true);
+
+                    $version = isset($data["vers"]) ? trim($data['vers']) : '';
+
+                    $dir = isset($data["dir"]) ? trim($data["dir"]) : '';
+                    $file = isset($data["file"]) ? trim($data["file"]) : '';
+                    $pi_file = isset($data["pi_file"]) ? trim($data["pi_file"]) : '';
+
                     $userModel = new UserModelAddFile();
 
-                    if ($version && floatval($version))
+                    if ($version && is_numeric($version))
                     {
                         if ($dir)
                         {
@@ -41,8 +51,8 @@
                             }
                             else
                             {
-                                $responseData = "Missing File Name";
-                                $strHeader = 'HTTP/1.1 422 Unprocessable Entity';
+                                $responseData = "Missing Data";
+                                $strHeader = 'HTTP/1.1 400 Bad Request';
                                 $arrIndex = 'Error';
                             }
                         }
@@ -121,6 +131,17 @@
             $server_file = str_replace("!", DIRSEP, $file);
             $pi_file = str_replace("!", "/", $pi_file);
             $name = basename($server_file);
+
+            $query = "SELECT `version` FROM `file_locations` WHERE `file_name` = ?";
+
+            $result = $this->execute($query, 's', array($name));
+
+            if($result)
+                return array(
+                    'Header' => 'HTTP/1.1 422 Unprocessable Entity',
+                    'Index' => 'Error',
+                    'Response' => 'File Already Exists'
+                );
 
             $query = "INSERT INTO `file_locations` (`file_name`, `version`, `server_dir`, `pi_dir`) VALUES (?, ?, ?, ?);";
 

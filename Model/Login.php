@@ -1,7 +1,7 @@
 <?php
-    class Register extends UserController
+    class Login extends UserController
     {
-        public function register()
+        public function login()
         {
             $requestMethod = $_SERVER["REQUEST_METHOD"];
             $credentials = file_get_contents('php://input');
@@ -24,7 +24,7 @@
                     $name = isset($credentials['name']) ? trim($credentials['name']) : '';
                     $pass = isset($credentials['pass']) ? trim($credentials['pass']) : '';
 
-                    $userModel = new UserModelRegister();
+                    $userModel = new UserModelLogin();
 
                     if(!$name || !$pass || strlen($pass) < 8 || $credentials['pass'] !== $pass)
                     {
@@ -34,7 +34,7 @@
                     }
                     else
                     {
-                        $response_arr = $userModel->register($name, $pass);
+                        $response_arr = $userModel->login($name, $pass, $login == 'true' ? 1 : 0);
 
                         $responseData = $response_arr['Response'];
                         $strHeader = $response_arr['Header'];
@@ -59,54 +59,68 @@
         }
     }
 
-    class UserModelRegister extends Database
+    class UserModelLogin extends Database
     {
-        public function register($name = '', $pass = '')
+        public function login($name = '', $pass = '')
         {
             $datum = new DateTime();
             $timestamp = $datum->format("Y-m-d H:i:s");
 
-            $salt = hash('md5', $timestamp);
-            $hash_pass = hash('sha512', $pass . $salt);
+            $query = "SELECT `timestamp` FROM `registered_devices` WHERE `device_name` = ?";
 
-            $query = "SELECT `device_num` FROM `registered_devices` 
-                WHERE `device_name` = ? UNION SELECT `device_num` FROM `device_requests` WHERE `device_name` = ?";
-
-            $result = $this->execute($query, 'ss', array($name, $name));
+            $result = $this->execute($query, 's', array($name));
 
             try
             {
-                if (is_array($result) && count($result) == 0)
+                if (is_array($result) && count($result) === 1)
                 {
-                    $query = "INSERT INTO `device_requests` (`device_name`, `device_pass`, `timestamp`) VALUES (?, ?, ?)";
-                    $result = $this->execute($query, 'sss', array($name, $hash_pass, $timestamp));
+                    $salt = hash('md5', $result[0]['timestamp']);
+                    $hash_pass = hash('sha512', $pass . $salt);
 
-                    if($result)
-                        return array(
-                            'Header' => 'HTTP/1.1 200 OK',
-                            'Index' => 'OK',
-                            'Response' => 'Device Request Added Successfully'
-                        );
+                    $query = "SELECT `device_num` FROM `registered_devices` WHERE `device_name` = ? AND `device_pass` = ?";
+                    $result = $this->execute($query, 'ss', array($name, $hash_pass));
+
+                    if(is_array($result) && count($result) === 1)
+                    {
+                        $query = "UPDATE `registered_devices` SET `login_timestamp` = ?, `logged_in` = 1 WHERE `device_name` = ?";
+
+                        $result = $this->execute($query, 'ss', array($timestamp, $name));
+
+                        if($result)
+                        {
+                            $jwt = new Jwt();
+
+                            return array(
+                                'Header' => 'HTTP/1.1 200 OK',
+                                'Index' => 'OK',
+                                'Response' => $jwt->jwt_generate_token(array("logged_in_as" => $name))
+                            );
+                        }
+                    }
                     else
+                    {
                         return array(
-                            'Header' => 'HTTP/1.1 500 Internal Server Error',
+                            'Header' => 'HTTP/1.1 422 Unprocessable Entity',
                             'Index' => 'Error',
-                            'Response' => 'Could Not Register Device'
+                            'Response' => 'Incorrect Device Name Or Password'
                         );
+                    }
                 }
                 else
+                {
                     return array(
-                        'Header' => 'HTTP/1.1 400 Bad Request',
+                        'Header' => 'HTTP/1.1 422 Unprocessable Entity',
                         'Index' => 'Error',
-                        'Response' => 'Device Name Already Exists'
+                        'Response' => 'Incorrect Device Name Or Password'
                     );
+                }
             }
             catch (Exception $e)
             {
                 return array(
-                    'Header' => 'HTTP/1.1 400 Bad Request',
+                    'Header' => 'HTTP/1.1 500 Internal Server Error',
                     'Index' => 'Error',
-                    'Response' => 'Device Name Already Exists'
+                    'Response' => 'Login Unsuccessful'
                 );
             }
         }

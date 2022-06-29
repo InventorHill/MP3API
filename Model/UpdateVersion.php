@@ -4,19 +4,28 @@
         public function updateVersion()
         {
             $requestMethod = $_SERVER["REQUEST_METHOD"];
-            $version = isset($_GET["vers"]) ? trim($_GET["vers"]) : '';
-            $file_name = isset($_GET["file_name"]) ? trim($_GET["file_name"]) : '';
+            $data = file_get_contents("php://input");
 
             $strHeader = 'HTTP/1.1 200 OK';
             $arrIndex = 'OK';
 
-            if(strtoupper($requestMethod) == 'GET')
+            if(!$data)
+            {
+                $responseData = "Missing Data";
+                $strHeader = 'HTTP/1.1 400 Bad Request';
+                $arrIndex = 'Error';
+            }
+            else if(strtoupper($requestMethod) == 'GET')
             {
                 try
                 {
+                    $data = json_decode($data, true);
+                    $version = isset($data["vers"]) ? trim($data["vers"]) : '';
+                    $file_name = isset($data["file_name"]) ? trim($data["file_name"]) : '';
+
                     $userModel = new UserModelUpdateVersion();
 
-                    if($version && $file_name && floatval($version))
+                    if($version && $file_name && is_numeric($version))
                     {
                         $response_arr = $userModel->updateVersion($version, $file_name);
 
@@ -53,6 +62,17 @@
     {
         public function updateVersion($version = '', $name = '') 
         {
+            $query = "SELECT `file_num` FROM `file_locations` WHERE `file_name` = ?";
+
+            $result = $this->execute($query, 's', array($name));
+
+            if(!$result)
+                return array(
+                    'Header' => 'HTTP/1.1 400 Bad Request',
+                    'Index' => 'Error',
+                    'Response' => 'File Does Not Exist'
+                );
+
             $query = "UPDATE `file_locations` SET `version` = ? WHERE `file_locations`.`file_name` = ?";
 
             $result = $this->execute($query, 'ds', array($version, $name));

@@ -4,16 +4,25 @@
         public function downloadFile()
         {
             $requestMethod = $_SERVER["REQUEST_METHOD"];
-            $file_name = isset($_GET["file_name"]) ? trim($_GET["file_name"]) : '';
+            $file = file_get_contents('php://input');
 
             $headers = array('Content-Type: application/json', 'HTTP/1.1 500 Internal Server Error');
             $name = '';
             $response = '';
 
-            if(strtoupper($requestMethod) == 'GET')
+            if(!$file)
+            {
+                $strErrorDesc = "Missing File Name";
+                $headers[1] = 'HTTP/1.1 422 Unprocessable Entity';
+                $response = json_encode(array('Error' => $strErrorDesc));
+            }
+            else if(strtoupper($requestMethod) == 'GET')
             {
                 try
                 {
+                    $file_name = json_decode($file, true);
+                    $file_name = isset($file_name["file_name"]) ? trim($file_name["file_name"]) : '';
+
                     $database = new Database();
 
                     if($file_name)

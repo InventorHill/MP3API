@@ -4,29 +4,42 @@
         public function deleteFile()
         {
             $requestMethod = $_SERVER["REQUEST_METHOD"];
-            $version = isset($_GET["vers"]) ? trim($_GET["vers"]) : '';
-            $file_name = isset($_GET["file_name"]) ? trim($_GET["file_name"]) : '';
-            $deleted = isset($_GET["deleted"]) ? trim($_GET["deleted"]) : '';
+            $data = file_get_contents("php://input");
 
             $strHeader = 'HTTP/1.1 200 OK';
             $arrIndex = 'OK';
 
-            if(!$version || !$file_name || !$deleted || !floatval($version))
+            if(!$data)
             {
-                $responseData = "Invalid Arguments";
-                $strHeader = 'HTTP/1.1 422 Unprocessable Entity';
+                $responseData = "Missing Data";
+                $strHeader = 'HTTP/1.1 400 Bad Request';
                 $arrIndex = 'Error';
             }
             else if(strtoupper($requestMethod) == 'GET')
             {
                 try
                 {
-                    $userModel = new UserModelDeleteFile();
-                    $response_arr = $userModel->deleteFile($version, $file_name, strtolower($deleted) == 'true' ? 1 : 0);
+                    $data = json_decode($data, true);
 
-                    $responseData = $response_arr['Response'];
-                    $strHeader = $response_arr['Header'];
-                    $arrIndex = $response_arr['Index'];
+                    $version = isset($data["vers"]) ? trim($data["vers"]) : '';
+                    $file_name = isset($data["file_name"]) ? trim($data["file_name"]) : '';
+                    $deleted = isset($data["deleted"]) ? trim($data["deleted"]) : '';
+
+                    if(!$version || !$file_name || !$deleted || !is_numeric($version))
+                    {
+                        $responseData = "Invalid Arguments";
+                        $strHeader = 'HTTP/1.1 422 Unprocessable Entity';
+                        $arrIndex = 'Error';
+                    }
+                    else
+                    {
+                        $userModel = new UserModelDeleteFile();
+                        $response_arr = $userModel->deleteFile($version, $file_name, strtolower($deleted) == 'true' ? 1 : 0);
+
+                        $responseData = $response_arr['Response'];
+                        $strHeader = $response_arr['Header'];
+                        $arrIndex = $response_arr['Index'];
+                    }
                 }
                 catch(Error $e)
                 {
@@ -50,6 +63,17 @@
     {
         public function deleteFile($version = '', $name = '', $deleted = '') 
         {
+            $query = "SELECT `file_num` FROM `file_locations` WHERE `file_name` = ?";
+
+            $result = $this->execute($query, 's', array($name));
+
+            if(!$result)
+                return array(
+                    'Header' => 'HTTP/1.1 400 Bad Request',
+                    'Index' => 'Error',
+                    'Response' => 'File Does Not Exist'
+                );
+
             $query = "UPDATE `file_locations` SET `deleted` = ? WHERE `file_locations`.`file_name` = ? AND `file_locations`.`version` = ?";
 
             $result = $this->execute($query, 'isd', array($deleted, $name, $version));

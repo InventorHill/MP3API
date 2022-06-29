@@ -3,11 +3,14 @@
     {
         public function uploadFile()
         {
+            //Comment out next line if wishing to allow file uploads
+            return array('', array('', 'HTTP/1.1 404 Not Found'));
+
             $requestMethod = $_SERVER["REQUEST_METHOD"];
             $submit = isset($_POST["submit"]) ? trim($_POST["submit"]) : '';
-            $vers = isset($_GET["vers"]) ? trim($_GET["vers"]) : '';
-            $pi_name = isset($_GET["pi_name"]) ? trim($_GET["pi_name"]) : '';
-            $update = isset($_GET["update"]) ? trim($_GET["update"]) : '';
+            $vers = isset($_POST["vers"]) ? trim($_POST["vers"]) : '';
+            $pi_name = isset($_POST["pi_name"]) ? trim($_POST["pi_name"]) : '';
+            $update = isset($_POST["update"]) ? trim($_POST["update"]) : '';
 
             $strHeader = 'HTTP/1.1 200 OK';
             $name = '';
@@ -26,7 +29,7 @@
                 $strHeader = 'HTTP/1.1 400 Bad Request';
                 $arrIndex = 'Error';
             }
-            else if (!floatval($vers))
+            else if (!is_numeric($vers))
             {
                 $responseData = "Invalid Version";
                 $strHeader = 'HTTP/1.1 400 Bad Request';
